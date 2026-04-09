@@ -1,0 +1,109 @@
+name: Test Nix flake
+
+on:
+  pull_request:
+    paths:
+      - flake.nix
+      - flake.lock
+      - .github/workflows/nix.yml
+  push:
+    paths:
+      - flake.nix
+      - flake.lock
+      - .github/workflows/nix.yml
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  format:
+    name: check flake formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          show-progress: false
+          persist-credentials: false
+      - uses: cachix/install-nix-action@2126ae7fc54c9df00dd18f7f18754393182c73cd # v31.9.1
+      - run: nix fmt flake.nix -- --check
+
+  build:
+    name: nix build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        installable:
+          # Ensure `nix develop` will work.
+          - devShells.x86_64-linux.default
+
+          - nexuschat-python
+          - nexuschat-repl
+          - nexuschat-repl-aarch64-linux
+          - nexuschat-repl-arm64-v8a-android
+          - nexuschat-repl-armeabi-v7a-android
+          - nexuschat-repl-armv6l-linux
+          - nexuschat-repl-armv7l-linux
+          - nexuschat-repl-i686-linux
+          - nexuschat-repl-win32
+          - nexuschat-repl-win64
+          - nexuschat-repl-x86_64-linux
+          - nexuschat-rpc-client
+          - nexuschat-rpc-server
+          - nexuschat-rpc-server-aarch64-linux
+          - nexuschat-rpc-server-aarch64-linux-wheel
+          - nexuschat-rpc-server-arm64-v8a-android
+          - nexuschat-rpc-server-arm64-v8a-android-wheel
+          - nexuschat-rpc-server-armeabi-v7a-android
+          - nexuschat-rpc-server-armeabi-v7a-android-wheel
+          - nexuschat-rpc-server-armv6l-linux
+          - nexuschat-rpc-server-armv6l-linux-wheel
+          - nexuschat-rpc-server-armv7l-linux
+          - nexuschat-rpc-server-armv7l-linux-wheel
+          - nexuschat-rpc-server-i686-linux
+          - nexuschat-rpc-server-i686-linux-wheel
+          - nexuschat-rpc-server-source
+          - nexuschat-rpc-server-win32
+          - nexuschat-rpc-server-win32-wheel
+          - nexuschat-rpc-server-win64
+          - nexuschat-rpc-server-win64-wheel
+          - nexuschat-rpc-server-x86_64-linux
+          - nexuschat-rpc-server-x86_64-linux-wheel
+          - docs
+          - libnexuschat
+          - python-docs
+
+          # Fails to build
+          #- nexuschat-repl-x86_64-android
+          #- nexuschat-repl-x86-android
+          #- nexuschat-rpc-server-x86_64-android
+          #- nexuschat-rpc-server-x86-android
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          show-progress: false
+          persist-credentials: false
+      - uses: cachix/install-nix-action@2126ae7fc54c9df00dd18f7f18754393182c73cd # v31.9.1
+      - run: nix build .#${{ matrix.installable }}
+
+  build-macos:
+    name: nix build on macOS
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        installable:
+          - nexuschat-rpc-server
+          - nexuschat-rpc-server-x86_64-darwin
+
+          # Fails to build
+          # because of <https://github.com/NixOS/nixpkgs/issues/413910>.
+          # - nexuschat-rpc-server-aarch64-darwin
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          show-progress: false
+          persist-credentials: false
+      - uses: cachix/install-nix-action@2126ae7fc54c9df00dd18f7f18754393182c73cd # v31.9.1
+      - run: nix build .#${{ matrix.installable }}
